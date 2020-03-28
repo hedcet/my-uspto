@@ -6,7 +6,6 @@ import { AmqpProviders } from './amqp.providers';
 import { AmqpService } from './amqp.service';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CorrespondentsService } from './correspondents.service';
 import { DbModels } from './db.models';
 import { env } from './env.validations';
 
@@ -22,12 +21,6 @@ import { env } from './env.validations';
     }),
     ScheduleModule.forRoot(),
   ],
-  providers: [
-    ...AmqpProviders,
-    AmqpService,
-    AppService,
-    CorrespondentsService,
-    Logger,
-  ],
+  providers: [...AmqpProviders, AmqpService, AppService, Logger],
 })
 export class AppModule {}

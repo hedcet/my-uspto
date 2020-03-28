@@ -146,6 +146,20 @@ export class AppService {
       });
   }
 
+  async response(_id: String = '') {
+    const transaction = await this.transactionsModel.findOne({ _id });
+    if (transaction && !transaction.status)
+      return {
+        ...transaction.toObject(),
+        queue_index:
+          (await this.transactionsModel.countDocuments({
+            status: '',
+            updated_at: { $lt: transaction.updated_at },
+          })) + 1,
+      };
+    return transaction;
+  }
+
   @Cron('0 0 0 * * *')
   async correspondentsLoop() {
     for (const correspondent of await this.correspondentsModel.find({

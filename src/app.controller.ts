@@ -14,11 +14,11 @@ export class AppController {
 
   @Post('request')
   async request(@Body() payload: RequestDto = {}) {
-    return this.appService.request(payload);
+    return await this.appService.request(payload);
   }
 
   @Get('response')
-  async response(@Query('id') id: string = '') {
-    return id;
+  async response(@Query('_id') _id: string = '') {
+    return await this.appService.response(_id);
   }
 }

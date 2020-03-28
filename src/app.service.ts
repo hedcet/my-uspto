@@ -1,7 +1,7 @@
 import { HttpService, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
-import { get, groupBy, omit } from 'lodash';
+import { compact, find, get, groupBy, omit } from 'lodash';
 import * as moment from 'moment';
 import { Model } from 'mongoose';
 import { isJSON } from 'validator';
@@ -86,7 +86,7 @@ export class AppService {
                   response: JSON.stringify(
                     omit(json, ['readyState', 'responseText']),
                   ),
-                  status: json.status ? 'success' : 'failed',
+                  status: json.status == 200 ? 'success' : 'failed',
                   updated_at: moment().toDate(),
                 },
               },
@@ -150,16 +150,46 @@ export class AppService {
   }
 
   async response(_id: String = '') {
-    const transaction = await this.transactionsModel.findOne({ _id });
-    if (transaction && !transaction.status)
-      return {
-        ...transaction.toObject(),
-        queue_index:
-          (await this.transactionsModel.countDocuments({
-            status: '',
-            updated_at: { $lt: transaction.updated_at },
-          })) + 1,
-      };
+    let transaction = await this.transactionsModel.findOne({ _id });
+    if (!transaction) return transaction;
+    transaction = transaction.toObject();
+
+    if (transaction.request && isJSON(transaction.request))
+      transaction.request = JSON.parse(transaction.request);
+
+    if (transaction.response && isJSON(transaction.response)) {
+      transaction.response = JSON.parse(transaction.response);
+
+      const $in = compact(
+        get(transaction, 'response.responseJSON.responseObject', []).map(app =>
+          (app.patronIdentifier || '').replace(/[^0-9]+/g, ''),
+        ),
+      );
+
+      if ($in.length) {
+        const correspondents = await this.correspondentsModel.find({
+          _id: { $in },
+        });
+
+        for (const app of transaction.response.responseJSON.responseObject) {
+          const correspondent = find(correspondents, {
+            _id: (app.patronIdentifier || '').replace(/[^0-9]+/g, ''),
+          });
+
+          if (correspondent) {
+            if (correspondent.name) app.correspondentName = correspondent.name;
+          } else await new this.correspondentsModel({ _id }).save();
+        }
+      }
+    }
+
+    if (!transaction.status)
+      transaction.queue_index =
+        (await this.transactionsModel.countDocuments({
+          status: '',
+          updated_at: { $lt: transaction.updated_at },
+        })) + 1;
+
     return transaction;
   }
 

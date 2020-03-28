@@ -35,7 +35,7 @@ export class AppService {
     return transaction;
   }
 
-  @Cron('0 0 0 * * *')
+  @Cron('0 */10 * * * *')
   async transactionsLoop() {
     const transactions = groupBy(
       await this.transactionsModel.find(
@@ -163,7 +163,7 @@ export class AppService {
     return transaction;
   }
 
-  @Cron('0 0 0 * * *')
+  @Cron('0 */10 * * * *')
   async correspondentsLoop() {
     for (const correspondent of await this.correspondentsModel.find({
       name: { $exists: false },

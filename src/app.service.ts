@@ -72,9 +72,12 @@ export class AppService {
             const json = JSON.parse(content);
 
             this.logger.log(
-              `${transaction._id}|${json.status}`,
+              `${transaction._id}|${json.status}|${json.statusText}`,
               'AppService/transactionsLoop',
             );
+
+            if (30 < json.statusText.length)
+              json.statusText = json.statusText.substr(0, 30);
 
             await this.transactionsModel.updateOne(
               { _id: transaction._id },

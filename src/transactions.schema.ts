@@ -1,7 +1,7 @@
 import * as moment from 'moment';
 import { Schema } from 'mongoose';
 
-export const transactionsSchema = new Schema(
+export const TransactionsSchema = new Schema(
   {
     _id: { required: true, type: String },
     request: { required: true, type: String },

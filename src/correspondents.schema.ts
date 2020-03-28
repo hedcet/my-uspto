@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-export const correspondentsSchema = new Schema(
+export const CorrespondentsSchema = new Schema(
   {
     _id: { required: true, type: String },
     name: String,

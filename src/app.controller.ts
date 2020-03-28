@@ -1,15 +1,11 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 
 import { AppService } from './app.service';
-import { CorrespondentsService } from './correspondents.service';
 import { RequestDto } from './request.dto';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly correspondentsService: CorrespondentsService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   get() {

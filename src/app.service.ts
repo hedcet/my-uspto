@@ -32,7 +32,7 @@ export class AppService {
       request: JSON.stringify(payload),
     }).save();
     this.transactionsLoop();
-    return transaction;
+    return await this.response(transaction._id);
   }
 
   @Cron('0 */10 * * * *')
@@ -240,5 +240,9 @@ export class AppService {
     }
 
     return true;
+  }
+
+  async correspondent(_id: String = '') {
+    return await this.correspondentsModel.findOne({ _id });
   }
 }

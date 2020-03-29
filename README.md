@@ -1,1 +1,1 @@
-USPTO legal-status/search API
+USPTO law-firm/legal-status search API

@@ -33,7 +33,7 @@
     "rxjs": "^6.5.4",
     "validator": "^11.1.0"
   },
-  "description": "USPTO legal-status/search API",
+  "description": "USPTO law-firm/legal-status search API",
   "devDependencies": {
     "@nestjs/testing": "^6.11.11",
     "@types/dotenv": "^6.1.1",

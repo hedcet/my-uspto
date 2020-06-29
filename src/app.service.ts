@@ -157,29 +157,17 @@ export class AppService {
     if (transaction.response && isJSON(transaction.response)) {
       transaction.response = JSON.parse(transaction.response);
 
-      const $in = compact(
-        get(transaction, 'response.responseJSON.responseObject', []).map(app =>
-          (app.patronIdentifier || '').replace(/[^0-9]+/g, ''),
-        ),
-      );
+      for await (const app of transaction.response.responseJSON.responseObject) {
+        const patronId = (app.patronIdentifier || '').replace(/[^0-9]+/g, '');
 
-      if ($in.length) {
-        const correspondents = await this.correspondentsModel.find({
-          _id: { $in },
-        });
+        if (patronId) {
+          const correspondent = await this.correspondentsModel.findOne({
+            _id: patronId,
+          });
 
-        for await (const app of transaction.response.responseJSON.responseObject) {
-          const correspondentId = (app.patronIdentifier || '').replace(/[^0-9]+/g, '');
-
-          if (correspondentId) {
-            const correspondent = find(correspondents, {
-              _id: correspondentId,
-            });
-
-            if (correspondent) {
-              if (correspondent.name) app.patronName = correspondent.name;
-            } else await new this.correspondentsModel({ _id: correspondentId }).save();
-          }
+          if (correspondent) {
+            if (correspondent.name) app.patronName = correspondent.name;
+          } else await new this.correspondentsModel({ _id: patronId }).save();
         }
       }
     }

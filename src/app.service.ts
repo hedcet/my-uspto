@@ -24,7 +24,7 @@ export class AppService {
     private readonly logger: Logger,
     @InjectModel(modelTokens.transactions)
     private readonly transactionsModel: Model<TransactionsModel>,
-  ) {}
+  ) { }
 
   async request(payload: RequestDto = {}) {
     const transaction = await new this.transactionsModel({
@@ -61,10 +61,7 @@ export class AppService {
       );
 
       this.amqpService
-        .request(
-          {},
-          { sendOpts: { headers: { payload: transaction.request } } },
-        )
+        .request(transaction.request)
         .then(async response => {
           const content = response.content.toString();
 

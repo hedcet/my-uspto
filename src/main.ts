@@ -39,7 +39,7 @@ const bootstrap = async () => {
   // });
   app.use(
     expressRateLimit({
-      max: 60,
+      max: 60 * 60,
       windowMs: 1000 * 60 * 60,
     }),
   );

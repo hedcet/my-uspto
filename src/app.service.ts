@@ -169,13 +169,17 @@ export class AppService {
         });
 
         for await (const app of transaction.response.responseJSON.responseObject) {
-          const correspondent = find(correspondents, {
-            _id: (app.patronIdentifier || '').replace(/[^0-9]+/g, ''),
-          });
+          const correspondentId = (app.patronIdentifier || '').replace(/[^0-9]+/g, '');
 
-          if (correspondent) {
-            if (correspondent.name) app.correspondentName = correspondent.name;
-          } else await new this.correspondentsModel({ _id }).save();
+          if (correspondentId) {
+            const correspondent = find(correspondents, {
+              _id: correspondentId,
+            });
+
+            if (correspondent) {
+              if (correspondent.name) app.patronName = correspondent.name;
+            } else await new this.correspondentsModel({ _id: correspondentId }).save();
+          }
         }
       }
     }

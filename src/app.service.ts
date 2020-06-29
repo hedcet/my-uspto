@@ -52,7 +52,7 @@ export class AppService {
       transaction => transaction.status || '',
     );
 
-    for (const transaction of transactions[''] || []) {
+    for await (const transaction of transactions[''] || []) {
       this.logger.log(transaction._id, 'AppService/transactionsLoop');
 
       await this.transactionsModel.updateOne(
@@ -168,7 +168,7 @@ export class AppService {
           _id: { $in },
         });
 
-        for (const app of transaction.response.responseJSON.responseObject) {
+        for await (const app of transaction.response.responseJSON.responseObject) {
           const correspondent = find(correspondents, {
             _id: (app.patronIdentifier || '').replace(/[^0-9]+/g, ''),
           });
@@ -192,7 +192,7 @@ export class AppService {
 
   @Cron('0 */10 * * * *')
   async correspondentsLoop() {
-    for (const correspondent of await this.correspondentsModel.find({
+    for await (const correspondent of await this.correspondentsModel.find({
       name: { $exists: false },
     })) {
       try {

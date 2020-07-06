@@ -26,11 +26,11 @@
     "lodash": "^4.17.15",
     "mkdirp": "^0.5.5",
     "moment": "^2.27.0",
-    "mongoose": "^5.9.20",
+    "mongoose": "^5.9.21",
     "numeral": "^2.0.6",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^2.7.1",
-    "rxjs": "^6.5.5",
+    "rxjs": "^6.6.0",
     "validator": "^11.1.0"
   },
   "devDependencies": {
@@ -41,7 +41,7 @@
     "@types/joi": "^14.3.4",
     "@types/node": "^12.12.47",
     "@types/passport-jwt": "^3.0.3",
-    "@types/supertest": "^2.0.9",
+    "@types/supertest": "^2.0.10",
     "concurrently": "^4.1.2",
     "jest": "^24.9.0",
     "nodemon": "^1.19.3",
@@ -51,7 +51,7 @@
     "ts-node": "^8.10.2",
     "tsconfig-paths": "^3.9.0",
     "tslint": "5.18.0",
-    "typescript": "^3.9.5",
+    "typescript": "^3.9.6",
     "wait-on": "^3.3.0"
   },
   "jest": {

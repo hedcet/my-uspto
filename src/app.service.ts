@@ -24,7 +24,7 @@ export class AppService {
     private readonly logger: Logger,
     @InjectModel(modelTokens.transactions)
     private readonly transactionsModel: Model<TransactionsModel>,
-  ) { }
+  ) {}
 
   async request(payload: RequestDto = {}) {
     const transaction = await new this.transactionsModel({
@@ -135,7 +135,7 @@ export class AppService {
 
     const transactionsModelStats = await this.transactionsModel.collection.stats();
 
-    if (128 * 1024 * 1024 < transactionsModelStats.storageSize)
+    if (384 * 1024 * 1024 < transactionsModelStats.storageSize)
       await this.transactionsModel.deleteMany({
         status: { $in: ['success', 'failed'] },
         updated_at: {
@@ -157,7 +157,8 @@ export class AppService {
     if (transaction.response && isJSON(transaction.response)) {
       transaction.response = JSON.parse(transaction.response);
 
-      for await (const app of transaction.response.responseJSON.responseObject) {
+      for await (const app of transaction.response.responseJSON
+        .responseObject) {
         const patronId = (app.patronIdentifier || '').replace(/[^0-9]+/g, '');
 
         if (patronId) {

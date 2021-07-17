@@ -1,10 +1,4 @@
-import {
-  CacheModule,
-  Global,
-  HttpModule,
-  Module,
-  Logger,
-} from '@nestjs/common';
+import { Global, Module, Logger } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -19,16 +13,11 @@ import { env } from './env.validations';
 @Module({
   controllers: [AppController],
   imports: [
-    CacheModule.register({
-      max: 1000 * 60,
-      ttl: 600,
-    }),
-    HttpModule.register({ timeout: 1000 * 60 }),
-    MongooseModule.forFeature([...DbModels]),
     MongooseModule.forRoot(env.MONGO_URL, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     }),
+    MongooseModule.forFeature([...DbModels]),
     ScheduleModule.forRoot(),
   ],
   providers: [...AmqpProviders, AmqpService, AppService, Logger],

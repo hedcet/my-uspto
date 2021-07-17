@@ -1,44 +1,40 @@
-import { HttpService, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
-import { compact, find, get, groupBy, omit } from 'lodash';
-import * as moment from 'moment';
+import { groupBy, omit } from 'lodash';
+import moment from 'moment';
 import { Model } from 'mongoose';
 import { isJSON } from 'validator';
 
 import { AmqpService } from './amqp.service';
-import { CorrespondentsModel } from './correspondents.model';
 import { modelTokens } from './db.models';
 import { env } from './env.validations';
 import { autoIncrementString } from './functions';
 import { RequestDto } from './request.dto';
-import { TransactionsModel } from './transactions.model';
+import { RequestModel } from './request.model';
 
 @Injectable()
 export class AppService {
   constructor(
     private readonly amqpService: AmqpService,
-    @InjectModel(modelTokens.correspondents)
-    private readonly correspondentsModel: Model<CorrespondentsModel>,
-    private readonly httpService: HttpService,
     private readonly logger: Logger,
-    @InjectModel(modelTokens.transactions)
-    private readonly transactionsModel: Model<TransactionsModel>,
+    @InjectModel(modelTokens.request)
+    private readonly requestModel: Model<RequestModel>,
   ) {}
 
   async request(payload: RequestDto = {}) {
-    const transaction = await new this.transactionsModel({
+    const request = await new this.requestModel({
       _id: autoIncrementString(),
       request: JSON.stringify(payload),
     }).save();
-    this.transactionsLoop();
-    return await this.response(transaction._id);
+    this.requestHandler();
+    return await this.response(request._id);
   }
 
-  @Cron('0 */10 * * * *')
-  async transactionsLoop() {
-    const transactions = groupBy(
-      await this.transactionsModel.find(
+  @Cron('0 */15 * * * *')
+  async requestHandler() {
+    const requests = groupBy(
+      await this.requestModel.find(
         {
           $or: [
             { status: '' },
@@ -49,19 +45,19 @@ export class AppService {
         { _id: 1, request: 1 },
         { limit: env.AMQP_INSTANCE_LIMIT, sort: { _id: 'asc' } },
       ),
-      transaction => transaction.status || '',
+      request => request.status || '',
     );
 
-    for await (const transaction of transactions[''] || []) {
-      this.logger.log(transaction._id, 'AppService/transactionsLoop');
+    for await (const request of requests[''] || []) {
+      this.logger.log(request._id, 'AppService/requestHandler');
 
-      await this.transactionsModel.updateOne(
-        { _id: transaction._id },
+      await this.requestModel.updateOne(
+        { _id: request._id },
         { $set: { status: 'processing', updated_at: moment().toDate() } },
       );
 
       this.amqpService
-        .request(transaction.request)
+        .request(request.request)
         .then(async response => {
           const content = response.content.toString();
 
@@ -69,21 +65,18 @@ export class AppService {
             const json = JSON.parse(content);
 
             this.logger.log(
-              `${transaction._id}|${json.status}|${json.statusText}`,
-              'AppService/transactionsLoop',
+              `${request._id}|${json.status}|${json.statusText}`,
+              'AppService/requestHandler',
             );
 
-            if (30 < json.statusText.length)
-              json.statusText = json.statusText.substr(0, 30);
-
-            await this.transactionsModel.updateOne(
-              { _id: transaction._id },
+            await this.requestModel.updateOne(
+              { _id: request._id },
               {
                 $set: {
                   response: JSON.stringify(
                     omit(json, ['readyState', 'responseText']),
                   ),
-                  status: json.status == 200 ? 'success' : 'failed',
+                  status: json.status === 200 ? 'success' : 'failed',
                   updated_at: moment().toDate(),
                 },
               },
@@ -91,12 +84,12 @@ export class AppService {
           } else {
             this.logger.error(
               content,
-              transaction._id,
-              'AppService/transactionsLoop',
+              request._id,
+              'AppService/requestHandler',
             );
 
-            await this.transactionsModel.updateOne(
-              { _id: transaction._id },
+            await this.requestModel.updateOne(
+              { _id: request._id },
               {
                 $set: {
                   response: JSON.stringify({
@@ -110,13 +103,13 @@ export class AppService {
             );
           }
 
-          this.transactionsLoop();
+          this.requestHandler();
         })
         .catch(async e => {
-          this.logger.error(e, transaction._id, 'AppService/transactionsLoop');
+          this.logger.error(e, request._id, 'AppService/requestHandler');
 
-          await this.transactionsModel.updateOne(
-            { _id: transaction._id },
+          await this.requestModel.updateOne(
+            { _id: request._id },
             {
               $set: {
                 response: JSON.stringify({
@@ -129,14 +122,15 @@ export class AppService {
             },
           );
 
-          this.transactionsLoop();
+          this.requestHandler();
         });
     }
 
-    const transactionsModelStats = await this.transactionsModel.collection.stats();
-
-    if (384 * 1024 * 1024 < transactionsModelStats.storageSize)
-      await this.transactionsModel.deleteMany({
+    if (
+      384 * 1024 * 1024 <
+      (await this.requestModel.collection.stats()).storageSize
+    )
+      await this.requestModel.deleteMany({
         status: { $in: ['success', 'failed'] },
         updated_at: {
           $lt: moment()
@@ -147,92 +141,24 @@ export class AppService {
   }
 
   async response(_id: String = '') {
-    let transaction = await this.transactionsModel.findOne({ _id });
-    if (!transaction) return transaction;
-    transaction = transaction.toObject();
+    const request = await this.requestModel.findOne({ _id });
+    if (!request) return;
 
-    if (transaction.request && isJSON(transaction.request))
-      transaction.request = JSON.parse(transaction.request);
+    const response: any = request.toObject();
 
-    if (transaction.response && isJSON(transaction.response)) {
-      transaction.response = JSON.parse(transaction.response);
+    if (isJSON(response.request || ''))
+      response.request = JSON.parse(response.request);
 
-      for await (const app of transaction.response.responseJSON
-        .responseObject) {
-        const patronId = (app.patronIdentifier || '').replace(/[^0-9]+/g, '');
+    if (isJSON(response.response || ''))
+      response.response = JSON.parse(response.response);
 
-        if (patronId) {
-          const correspondent = await this.correspondentsModel.findOne({
-            _id: patronId,
-          });
-
-          if (correspondent) {
-            if (correspondent.name) app.patronName = correspondent.name;
-          } else await new this.correspondentsModel({ _id: patronId }).save();
-        }
-      }
-    }
-
-    if (!transaction.status)
-      transaction.queue_index =
-        (await this.transactionsModel.countDocuments({
+    if (!response.status)
+      response.queue_index =
+        (await this.requestModel.countDocuments({
           status: '',
-          updated_at: { $lt: transaction.updated_at },
+          updated_at: { $lt: response.updated_at },
         })) + 1;
 
-    return transaction;
-  }
-
-  @Cron('0 */10 * * * *')
-  async correspondentsLoop() {
-    for await (const correspondent of await this.correspondentsModel.find({
-      name: { $exists: false },
-    })) {
-      try {
-        this.logger.log(correspondent._id, 'AppService/correspondentsLoop');
-
-        const response = await this.httpService
-          .post('https://ped.uspto.gov/api/queries', {
-            df: 'appCustNumber',
-            facet: true,
-            facetField: ['corrAddrNameLineOne'],
-            facetLimit: 1,
-            fl: '*',
-            fq: [],
-            mm: '0%',
-            qf: 'appCustNumber corrAddrCustNo',
-            searchText: `appCustNumber:(${correspondent._id})`,
-            sort: 'appStatusDate desc',
-            start: 0,
-          })
-          .toPromise();
-
-        const name = get(
-          response.data,
-          'queryResults.searchResponse.facet_counts.facet_fields.corrAddrNameLineOne[0]',
-          '',
-        );
-
-        if (
-          3 <= name.replace(/\s+/g, '').length &&
-          correspondent.name !== name
-        ) {
-          this.logger.log(name, 'AppService/correspondentsLoop');
-
-          await this.correspondentsModel.updateOne(
-            { _id: correspondent._id },
-            { $set: { name } },
-          );
-        }
-      } catch (e) {
-        this.logger.error(e, e.message, 'AppService/correspondentsLoop');
-      }
-    }
-
-    return true;
-  }
-
-  async correspondent(_id: String = '') {
-    return await this.correspondentsModel.findOne({ _id });
+    return response;
   }
 }

@@ -1,6 +1,6 @@
 import { Document } from 'mongoose';
 
-export interface TransactionsModel extends Document {
+export interface RequestModel extends Document {
   _id: String;
   request: String;
   response?: String;

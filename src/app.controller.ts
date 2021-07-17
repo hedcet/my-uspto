@@ -1,12 +1,4 @@
-import {
-  Body,
-  CacheInterceptor,
-  Controller,
-  Get,
-  Post,
-  Query,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 
 import { AppService } from './app.service';
 import { RequestDto } from './request.dto';
@@ -28,11 +20,5 @@ export class AppController {
   @Get('response')
   async response(@Query('_id') _id: string = '') {
     return await this.appService.response(_id);
-  }
-
-  @Get('correspondent')
-  @UseInterceptors(CacheInterceptor)
-  async correspondent(@Query('_id') _id: string = '') {
-    return await this.appService.correspondent(_id);
   }
 }

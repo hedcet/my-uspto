@@ -1,12 +1,4 @@
-import { CorrespondentsSchema } from './correspondents.schema';
-import { TransactionsSchema } from './transactions.schema';
+import { RequestSchema } from './request.schema';
 
-export const modelTokens = {
-  correspondents: 'correspondents',
-  transactions: 'transactions',
-};
-
-export const DbModels = [
-  { name: modelTokens.correspondents, schema: CorrespondentsSchema },
-  { name: modelTokens.transactions, schema: TransactionsSchema },
-];
+export const modelTokens = { request: 'request' };
+export const DbModels = [{ name: modelTokens.request, schema: RequestSchema }];

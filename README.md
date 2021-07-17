@@ -1,1 +1,1 @@
-[USPTO search API](https://github.com/HedCET/my-uspto/wiki)
+[USPTO search API Documentation](https://github.com/HedCET/my-uspto/wiki)

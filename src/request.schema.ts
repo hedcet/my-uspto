@@ -7,7 +7,7 @@ export const RequestSchema = new Schema(
     request: { required: true, type: String },
     response: String,
     status: { default: '', type: String },
-    updated_at: { default: moment().toDate(), type: Date },
+    updated_at: { default: moment().toDate(), index: true, type: Date },
   },
   { versionKey: false },
 );

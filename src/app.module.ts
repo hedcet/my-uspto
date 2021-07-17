@@ -14,6 +14,8 @@ import { env } from './env.validations';
   controllers: [AppController],
   imports: [
     MongooseModule.forRoot(env.MONGO_URL, {
+      useCreateIndex: true,
+      useFindAndModify: false,
       useNewUrlParser: true,
       useUnifiedTopology: true,
     }),

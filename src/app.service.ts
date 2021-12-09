@@ -20,7 +20,7 @@ export class AppService {
     private readonly logger: Logger,
     @InjectModel(modelTokens.request)
     private readonly requestModel: Model<RequestModel>,
-  ) {}
+  ) { }
 
   async request(payload: RequestDto = {}) {
     const request = await new this.requestModel({
@@ -128,13 +128,13 @@ export class AppService {
 
     if (
       384 * 1024 * 1024 <
-      (await this.requestModel.collection.stats()).storageSize
+      (await this.requestModel.collection.stats()).size
     )
       await this.requestModel.deleteMany({
-        status: { $in: ['success', 'failed'] },
+        status: { $in: ['failed', 'success'] },
         updated_at: {
           $lt: moment()
-            .subtract(7, 'days')
+            .subtract(1, 'minutes')
             .toDate(),
         },
       });
